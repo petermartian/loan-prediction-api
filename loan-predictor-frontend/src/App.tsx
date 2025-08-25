@@ -1,12 +1,11 @@
 import { useState } from 'react';
-import { useForm, type SubmitHandler } from 'react-hook-form';
+// FIX: Import specific types from react-hook-form for better type safety
+import { useForm, type SubmitHandler, type UseFormRegister, type FieldError } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-// FIX: Removed 'Legend' as it was unused
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 // --- Zod Schema for Validation ---
-// This schema defines the shape and rules for our form data.
 const loanApplicationSchema = z.object({
   Gender: z.enum(['Male', 'Female']),
   Married: z.enum(['Yes', 'No']),
@@ -30,6 +29,51 @@ type PredictionResult = {
   status: 'Approved' | 'Not Approved';
   confidence_probability: string;
 };
+
+// --- Reusable Input Component with proper types ---
+interface FormInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+  id: keyof LoanApplicationForm;
+  label: string;
+  register: UseFormRegister<LoanApplicationForm>;
+  error?: FieldError;
+}
+
+const FormInput: React.FC<FormInputProps> = ({ id, label, register, error, ...props }) => (
+    <div className="flex flex-col">
+      <label htmlFor={id} className="mb-1 text-sm font-medium text-gray-300">{label}</label>
+      <input
+        id={id}
+        {...register(id)}
+        className="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+        {...props}
+      />
+      {error && <p className="mt-1 text-xs text-red-400">{error.message}</p>}
+    </div>
+);
+
+// --- Reusable Select Component with proper types ---
+interface FormSelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
+    id: keyof LoanApplicationForm;
+    label: string;
+    options: readonly string[];
+    register: UseFormRegister<LoanApplicationForm>;
+    error?: FieldError;
+}
+
+const FormSelect: React.FC<FormSelectProps> = ({ id, label, options, register, error }) => (
+     <div className="flex flex-col">
+      <label htmlFor={id} className="mb-1 text-sm font-medium text-gray-300">{label}</label>
+      <select
+        id={id}
+        {...register(id)}
+        className="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+      >
+        {options.map((option: string) => <option key={option} value={option}>{option}</option>)}
+      </select>
+      {error && <p className="mt-1 text-xs text-red-400">{error.message}</p>}
+    </div>
+);
+
 
 // --- Main App Component ---
 export default function App() {
@@ -84,25 +128,6 @@ export default function App() {
     const probabilityValue = parseFloat(predictionResult.confidence_probability.replace('%', ''));
     return [{ name: 'Confidence', value: probabilityValue }];
   };
-
-  // Reusable components (no changes needed here)
-  const FormInput = ({ id, label, type = "number", register, error, ...props }: any) => (
-    <div className="flex flex-col">
-      <label htmlFor={id} className="mb-1 text-sm font-medium text-gray-300">{label}</label>
-      <input id={id} type={type} {...register(id)} className="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" {...props}/>
-      {error && <p className="mt-1 text-xs text-red-400">{error.message}</p>}
-    </div>
-  );
-  
-  const FormSelect = ({ id, label, options, register, error }: any) => (
-     <div className="flex flex-col">
-      <label htmlFor={id} className="mb-1 text-sm font-medium text-gray-300">{label}</label>
-      <select id={id} {...register(id)} className="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
-        {options.map((option: string) => <option key={option} value={option}>{option}</option>)}
-      </select>
-      {error && <p className="mt-1 text-xs text-red-400">{error.message}</p>}
-    </div>
-  );
 
   return (
     <div className="bg-gray-900 min-h-screen text-white font-sans flex items-center justify-center p-4">

@@ -1,13 +1,10 @@
 import { useState } from 'react';
-import { useForm, type SubmitHandler } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm, SubmitHandler, UseFormRegister, FieldErrors } from 'react-hook-form';
 import { z } from 'zod';
-import {
-  BarChart, Bar, XAxis, YAxis, Tooltip,
-  ResponsiveContainer, Cell
-} from 'recharts';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
-// --- Zod Schema for Validation ---
+// --- Zod Schema ---
 const loanSchema = z.object({
   Gender: z.enum(['Male', 'Female']),
   Married: z.enum(['Yes', 'No']),
@@ -18,10 +15,9 @@ const loanSchema = z.object({
   CoapplicantIncome: z.coerce.number().min(0),
   LoanAmount: z.coerce.number().min(1),
   Loan_Amount_Term: z.coerce.number().min(1),
-  Credit_History: z.coerce.number().refine(val => [0, 1].includes(val), "Must be 0 or 1"),
+  Credit_History: z.coerce.number().refine((val) => [0, 1].includes(val)),
   Property_Area: z.enum(['Rural', 'Urban', 'Semiurban']),
 });
-
 type LoanForm = z.infer<typeof loanSchema>;
 
 type PredictionResult = {
@@ -30,16 +26,50 @@ type PredictionResult = {
   confidence_probability: string;
 };
 
-export default function App() {
-  const [prediction, setPrediction] = useState<PredictionResult | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+type FormProps<T> = {
+  id: keyof T;
+  label: string;
+  register: UseFormRegister<T>;
+  errors: FieldErrors<T>;
+};
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<LoanForm>({
+function Input<T>({ id, label, register, errors, ...rest }: FormProps<T> & React.InputHTMLAttributes<HTMLInputElement>) {
+  return (
+    <div className="flex flex-col">
+      <label htmlFor={String(id)} className="text-sm text-gray-300">{label}</label>
+      <input
+        id={String(id)}
+        {...register(id)}
+        {...rest}
+        className="bg-gray-700 border border-gray-600 rounded p-2 text-white"
+      />
+      {errors[id] && <p className="text-red-400 text-xs">{(errors[id] as any)?.message}</p>}
+    </div>
+  );
+}
+
+function Select<T>({ id, label, options, register, errors }: FormProps<T> & { options: string[] }) {
+  return (
+    <div className="flex flex-col">
+      <label htmlFor={String(id)} className="text-sm text-gray-300">{label}</label>
+      <select
+        id={String(id)}
+        {...register(id)}
+        className="bg-gray-700 border border-gray-600 rounded p-2 text-white"
+      >
+        {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+      </select>
+      {errors[id] && <p className="text-red-400 text-xs">{(errors[id] as any)?.message}</p>}
+    </div>
+  );
+}
+
+export default function App() {
+  const [result, setResult] = useState<PredictionResult | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
+
+  const { register, handleSubmit, formState: { errors } } = useForm<LoanForm>({
     resolver: zodResolver(loanSchema),
     defaultValues: {
       Gender: 'Male',
@@ -53,138 +83,87 @@ export default function App() {
   });
 
   const onSubmit: SubmitHandler<LoanForm> = async (data) => {
-    setLoading(true);
-    setError(null);
-    setPrediction(null);
-
+    setIsLoading(true);
+    setApiError(null);
+    setResult(null);
     try {
-      const response = await fetch('https://loan-prediction-api-yjry.onrender.com/predict', {
+      const res = await fetch("https://loan-prediction-api-yjry.onrender.com/predict", {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
 
-      if (!response.ok) {
-        throw new Error(`API responded with status ${response.status}`);
-      }
+      if (!res.ok) throw new Error(`API Error: ${res.statusText}`);
 
-      const result: PredictionResult = await response.json();
-      setPrediction(result);
+      const json: PredictionResult = await res.json();
+      setResult(json);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An unknown error occurred');
+      setApiError((err as Error).message || 'Unknown error');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
-  const chartData = prediction
-    ? [{ name: 'Confidence', value: parseFloat(prediction.confidence_probability.replace('%', '')) }]
-    : [];
+  const getChartData = () => {
+    if (!result) return [];
+    const value = parseFloat(result.confidence_probability.replace('%', ''));
+    return [{ name: 'Confidence', value }];
+  };
 
   return (
-    <div className="bg-gray-900 min-h-screen text-white flex items-center justify-center p-6">
-      <main className="w-full max-w-5xl bg-gray-800 rounded-2xl shadow-xl p-8 grid lg:grid-cols-2 gap-8">
-        {/* Form */}
+    <div className="bg-gray-900 min-h-screen text-white font-sans flex items-center justify-center p-4">
+      <main className="w-full max-w-4xl bg-gray-800 rounded-2xl shadow-2xl p-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="space-y-6">
           <h1 className="text-3xl font-bold text-center text-blue-400">Loan Approval Predictor</h1>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Select id="Gender" label="Gender" options={['Male', 'Female']} {...{ register, errors }} />
-              <Select id="Married" label="Married" options={['Yes', 'No']} {...{ register, errors }} />
-              <Input id="Dependents" label="Dependents (0–3)" type="number" {...{ register, errors }} />
-              <Select id="Education" label="Education" options={['Graduate', 'Not Graduate']} {...{ register, errors }} />
-              <Select id="Self_Employed" label="Self Employed" options={['Yes', 'No']} {...{ register, errors }} />
-              <Input id="Credit_History" label="Credit History (1=Yes, 0=No)" type="number" {...{ register, errors }} />
+              <Select<LoanForm> id="Gender" label="Gender" options={['Male', 'Female']} register={register} errors={errors} />
+              <Select<LoanForm> id="Married" label="Married" options={['Yes', 'No']} register={register} errors={errors} />
+              <Input<LoanForm> id="Dependents" label="Dependents" type="number" register={register} errors={errors} />
+              <Select<LoanForm> id="Education" label="Education" options={['Graduate', 'Not Graduate']} register={register} errors={errors} />
+              <Select<LoanForm> id="Self_Employed" label="Self Employed" options={['Yes', 'No']} register={register} errors={errors} />
+              <Input<LoanForm> id="Credit_History" label="Credit History (0 or 1)" type="number" register={register} errors={errors} />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Input id="ApplicantIncome" label="Applicant Income" type="number" {...{ register, errors }} />
-              <Input id="CoapplicantIncome" label="Co-applicant Income" type="number" {...{ register, errors }} />
-              <Input id="LoanAmount" label="Loan Amount (in thousands)" type="number" {...{ register, errors }} />
-              <Input id="Loan_Amount_Term" label="Loan Term (in months)" type="number" {...{ register, errors }} />
+              <Input<LoanForm> id="ApplicantIncome" label="Applicant Income" type="number" register={register} errors={errors} />
+              <Input<LoanForm> id="CoapplicantIncome" label="Co-applicant Income" type="number" register={register} errors={errors} />
+              <Input<LoanForm> id="LoanAmount" label="Loan Amount" type="number" register={register} errors={errors} />
+              <Input<LoanForm> id="Loan_Amount_Term" label="Loan Term" type="number" register={register} errors={errors} />
             </div>
-            <Select id="Property_Area" label="Property Area" options={['Urban', 'Rural', 'Semiurban']} {...{ register, errors }} />
-            <button type="submit" disabled={loading}
-              className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white font-semibold py-3 rounded-lg transition">
-              {loading ? 'Predicting...' : 'Get Prediction'}
+            <Select<LoanForm> id="Property_Area" label="Property Area" options={['Rural', 'Urban', 'Semiurban']} register={register} errors={errors} />
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full bg-blue-600 hover:bg-blue-700 px-4 py-3 text-sm rounded-md font-semibold disabled:bg-gray-500"
+            >
+              {isLoading ? "Predicting..." : "Predict Loan Approval"}
             </button>
           </form>
         </div>
-
-        {/* Result */}
-        <div className="bg-gray-900 rounded-lg p-8 flex flex-col items-center justify-center min-h-[350px]">
-          {loading && <p className="text-gray-400">Loading...</p>}
-          {error && <p className="text-red-400 text-center">{error}</p>}
-          {prediction && (
-            <div className="text-center w-full">
-              <h2 className="text-xl font-bold mb-4 text-gray-300">Result</h2>
-              <div className={`p-6 rounded-lg text-white text-3xl font-bold mb-6 ${
-                prediction.status === 'Approved' ? 'bg-green-600' : 'bg-red-600'
-              }`}>
-                {prediction.status}
+        <div className="bg-gray-900 rounded-lg p-8 flex flex-col items-center justify-center min-h-[300px]">
+          {isLoading && <p className="text-gray-400">Checking prediction...</p>}
+          {apiError && <p className="text-red-400 text-sm">{apiError}</p>}
+          {result && (
+            <div className="text-center">
+              <div className={`p-6 mb-4 text-2xl font-bold rounded-lg ${result.status === 'Approved' ? 'bg-green-500' : 'bg-red-500'}`}>
+                {result.status}
               </div>
-              <p className="text-lg text-blue-400 mb-4">Confidence: {prediction.confidence_probability}</p>
-              <ResponsiveContainer width="100%" height={120}>
-                <BarChart layout="vertical" data={chartData}>
+              <p className="text-blue-300 text-lg mb-2">Confidence: {result.confidence_probability}</p>
+              <ResponsiveContainer width="100%" height={150}>
+                <BarChart data={getChartData()} layout="vertical">
                   <XAxis type="number" domain={[0, 100]} hide />
                   <YAxis type="category" dataKey="name" hide />
                   <Tooltip />
                   <Bar dataKey="value" barSize={30}>
-                    <Cell fill={prediction.status === 'Approved' ? '#22c55e' : '#ef4444'} />
+                    <Cell fill={result.status === 'Approved' ? '#34d399' : '#f87171'} />
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
           )}
-          {!loading && !error && !prediction && <p className="text-gray-500 text-center">Submit details to get prediction</p>}
+          {!result && !apiError && !isLoading && <p className="text-gray-400">Submit the form to view result</p>}
         </div>
       </main>
-    </div>
-  );
-}
-
-// --- Reusable Input ---
-function Input({
-  id, label, type, register, errors,
-}: {
-  id: keyof LoanForm;
-  label: string;
-  type: string;
-  register: ReturnType<typeof useForm>['register'];
-  errors: ReturnType<typeof useForm>['formState']['errors'];
-}) {
-  return (
-    <div className="flex flex-col">
-      <label htmlFor={id} className="text-sm text-gray-300">{label}</label>
-      <input
-        type={type}
-        {...register(id)}
-        className="bg-gray-700 border border-gray-600 rounded p-2 text-white"
-      />
-      {errors[id] && <p className="text-red-400 text-xs">{errors[id]?.message as string}</p>}
-    </div>
-  );
-}
-
-// --- Reusable Select ---
-function Select({
-  id, label, options, register, errors,
-}: {
-  id: keyof LoanForm;
-  label: string;
-  options: readonly string[];
-  register: ReturnType<typeof useForm>['register'];
-  errors: ReturnType<typeof useForm>['formState']['errors'];
-}) {
-  return (
-    <div className="flex flex-col">
-      <label htmlFor={id} className="text-sm text-gray-300">{label}</label>
-      <select
-        {...register(id)}
-        className="bg-gray-700 border border-gray-600 rounded p-2 text-white"
-      >
-        {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-      </select>
-      {errors[id] && <p className="text-red-400 text-xs">{errors[id]?.message as string}</p>}
     </div>
   );
 }

@@ -82,3 +82,10 @@ def predict(data: LoanApplication):
         "status": status,
         "confidence_probability": f"{probability[0][1]:.2%}" # Formats it as a percentage
     }
+
+# Part 6: Create a friendly welcome message for the main page
+@app.get("/")
+def read_root():
+    """This function runs when someone visits the main page."""
+    return {"message": "Welcome to the Loan Prediction API. Go to /docs to use the API."}
+# --------------------------------

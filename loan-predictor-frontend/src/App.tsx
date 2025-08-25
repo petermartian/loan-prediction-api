@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+// FIX: Removed 'Legend' as it was unused
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 // --- Zod Schema for Validation ---
@@ -37,7 +38,7 @@ export default function App() {
   const [apiError, setApiError] = useState<string | null>(null);
 
   const { register, handleSubmit, formState: { errors } } = useForm<LoanApplicationForm>({
-    resolver: zodResolver(loanApplicationSchema), // FIX: Removed the 'as any' for proper type checking
+    resolver: zodResolver(loanApplicationSchema),
     defaultValues: {
       Gender: 'Male',
       Married: 'No',

@@ -1,0 +1,45 @@
+Features: ['Gender', 'Married', 'Dependents', 'Education', 'Self_Employed', 'ApplicantIncome', 'CoapplicantIncome', 'LoanAmount', 'Loan_Amount_Term', 'Credit_History', 'Property_Area']
+
+
+Sample Values
+	Dependents	ApplicantIncome	CoapplicantIncome	LoanAmount	Loan_Amount_Term	Credit_History
+min	0		150.000000	0.000000		9.000000	36.000000		0.000000
+max	3		81000.000000	33837.000000		600.000000	480.000000		1.000000
+
+
+Gender: 'Male' 'Female'
+Married: 'Yes' 'No'
+Education: 'Graduate' 'Not Graduate'
+Self_Employed:'No' 'Yes'
+Property_Area: 'Rural' 'Urban' 'Semiurban'
+
+
+import joblib
+import pandas as pd
+import numpy as np
+
+pipeline = joblib.load('model.joblib')
+
+new_data = pd.DataFrame({
+    'Gender': ['Male'],
+    'Married': ['Yes'],
+    'Dependents': [1],
+    'Education': ['Graduate'],
+    'Self_Employed': ['No'],
+    'ApplicantIncome': [5000],
+    'CoapplicantIncome': [2000],
+    'LoanAmount': [150],
+    'Loan_Amount_Term': [360],
+    'Credit_History': [1.0],
+    'Property_Area': ['Urban']
+})
+
+
+y_proba = pipeline.predict_proba(new_data)[:, 1]
+
+# Apply threshold
+threshold = 0.35
+y_pred = (y_proba >= threshold).astype(int)
+
+print("Predicted class:", y_pred[0])
+print("Predicted probability:", y_proba[0])

@@ -1,11 +1,9 @@
-import { useForm } from "react-hook-form";
+import { useState } from "react";
+import { useForm, SubmitHandler } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import axios from "axios";
-import { useState } from "react";
-import "./App.css";
 
-// Define Zod schema
 const schema = z.object({
   Gender: z.enum(["Male", "Female"]),
   Married: z.enum(["Yes", "No"]),
@@ -22,7 +20,7 @@ const schema = z.object({
 
 type FormData = z.infer<typeof schema>;
 
-function App() {
+export default function App() {
   const [prediction, setPrediction] = useState<string | null>(null);
 
   const {
@@ -33,70 +31,71 @@ function App() {
     resolver: zodResolver(schema),
   });
 
-  const onSubmit = async (data: FormData) => {
+  const onSubmit: SubmitHandler<FormData> = async (data) => {
     try {
-      const response = await axios.post("https://loan-default-api.onrender.com/predict", data);
+      const response = await axios.post("https://your-backend-url/predict", data);
       setPrediction(response.data.prediction);
     } catch (error) {
       console.error("Prediction error:", error);
-      setPrediction("Error making prediction.");
     }
   };
 
   return (
-    <div className="App">
-      <h1>Loan Default Predictor</h1>
-      <form onSubmit={handleSubmit(onSubmit)}>
-        <select {...register("Gender")}>
-          <option value="Male">Male</option>
-          <option value="Female">Female</option>
-        </select>
+    <div className="min-h-screen bg-gray-50 p-6 text-gray-900">
+      <h1 className="text-3xl font-bold mb-4">Loan Default Predictor</h1>
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 max-w-xl">
+        {/* Input fields */}
+        {[
+          { label: "Gender", name: "Gender", type: "select", options: ["Male", "Female"] },
+          { label: "Married", name: "Married", type: "select", options: ["Yes", "No"] },
+          { label: "Dependents", name: "Dependents", type: "number" },
+          { label: "Education", name: "Education", type: "select", options: ["Graduate", "Not Graduate"] },
+          { label: "Self Employed", name: "Self_Employed", type: "select", options: ["Yes", "No"] },
+          { label: "Applicant Income", name: "ApplicantIncome", type: "number" },
+          { label: "Coapplicant Income", name: "CoapplicantIncome", type: "number" },
+          { label: "Loan Amount", name: "LoanAmount", type: "number" },
+          { label: "Loan Term (months)", name: "Loan_Amount_Term", type: "number" },
+          { label: "Credit History (1 = Good, 0 = Bad)", name: "Credit_History", type: "number" },
+          { label: "Property Area", name: "Property_Area", type: "select", options: ["Urban", "Rural", "Semiurban"] },
+        ].map((field) => (
+          <div key={field.name}>
+            <label className="block font-semibold">
+              {field.label}
+              {field.type === "select" ? (
+                <select {...register(field.name as keyof FormData)} className="block w-full mt-1 p-2 border rounded">
+                  <option value="">Select...</option>
+                  {field.options?.map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  type="number"
+                  {...register(field.name as keyof FormData)}
+                  className="block w-full mt-1 p-2 border rounded"
+                />
+              )}
+            </label>
+            {errors[field.name as keyof FormData] && (
+              <p className="text-red-600 text-sm">
+                {field.label} is required or must be valid.
+              </p>
+            )}
+          </div>
+        ))}
 
-        <select {...register("Married")}>
-          <option value="Yes">Yes</option>
-          <option value="No">No</option>
-        </select>
-
-        <input type="number" placeholder="Dependents" {...register("Dependents")} />
-        <p>{errors.Dependents?.message}</p>
-
-        <select {...register("Education")}>
-          <option value="Graduate">Graduate</option>
-          <option value="Not Graduate">Not Graduate</option>
-        </select>
-
-        <select {...register("Self_Employed")}>
-          <option value="Yes">Yes</option>
-          <option value="No">No</option>
-        </select>
-
-        <input type="number" placeholder="Applicant Income" {...register("ApplicantIncome")} />
-        <p>{errors.ApplicantIncome?.message}</p>
-
-        <input type="number" placeholder="Coapplicant Income" {...register("CoapplicantIncome")} />
-        <p>{errors.CoapplicantIncome?.message}</p>
-
-        <input type="number" placeholder="Loan Amount" {...register("LoanAmount")} />
-        <p>{errors.LoanAmount?.message}</p>
-
-        <input type="number" placeholder="Loan Amount Term" {...register("Loan_Amount_Term")} />
-        <p>{errors.Loan_Amount_Term?.message}</p>
-
-        <input type="number" placeholder="Credit History (0 or 1)" {...register("Credit_History")} />
-        <p>{errors.Credit_History?.message}</p>
-
-        <select {...register("Property_Area")}>
-          <option value="Rural">Rural</option>
-          <option value="Urban">Urban</option>
-          <option value="Semiurban">Semiurban</option>
-        </select>
-
-        <button type="submit">Predict</button>
+        <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+          Predict
+        </button>
       </form>
 
-      {prediction && <h2>Prediction: {prediction}</h2>}
+      {prediction && (
+        <div className="mt-6 p-4 bg-green-100 border border-green-400 rounded text-green-800">
+          <strong>Prediction:</strong> {prediction}
+        </div>
+      )}
     </div>
   );
 }
-
-export default App;

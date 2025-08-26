@@ -1,27 +1,30 @@
-import { useState } from "react";
-import { useForm, SubmitHandler } from "react-hook-form";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import axios from "axios";
+import { useState } from 'react';
+import { useForm, SubmitHandler } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+import axios from 'axios';
 
+// --- Zod Schema for Validation ---
 const schema = z.object({
-  Gender: z.enum(["Male", "Female"]),
-  Married: z.enum(["Yes", "No"]),
-  Dependents: z.coerce.number(),
-  Education: z.enum(["Graduate", "Not Graduate"]),
-  Self_Employed: z.enum(["Yes", "No"]),
-  ApplicantIncome: z.coerce.number(),
-  CoapplicantIncome: z.coerce.number(),
-  LoanAmount: z.coerce.number(),
-  Loan_Amount_Term: z.coerce.number(),
-  Credit_History: z.coerce.number(),
-  Property_Area: z.enum(["Rural", "Urban", "Semiurban"]),
+  Gender: z.enum(['Male', 'Female']),
+  Married: z.enum(['Yes', 'No']),
+  Dependents: z.coerce.number().min(0, { message: 'Must be 0 or more' }),
+  Education: z.enum(['Graduate', 'Not Graduate']),
+  Self_Employed: z.enum(['Yes', 'No']),
+  ApplicantIncome: z.coerce.number().min(1, { message: 'Must be positive' }),
+  CoapplicantIncome: z.coerce.number().min(0, { message: 'Cannot be negative' }),
+  LoanAmount: z.coerce.number().min(1, { message: 'Must be positive' }),
+  Loan_Amount_Term: z.coerce.number().min(1, { message: 'Must be positive' }),
+  Credit_History: z.coerce.number().min(0).max(1, { message: 'Must be 0 or 1' }),
+  Property_Area: z.enum(['Rural', 'Urban', 'Semiurban']),
 });
 
+// Infer TypeScript type from the Zod schema
 type FormData = z.infer<typeof schema>;
 
 export default function App() {
   const [prediction, setPrediction] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const {
     register,
@@ -29,42 +32,61 @@ export default function App() {
     formState: { errors },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
+    defaultValues: {
+      Dependents: 0,
+      Credit_History: 1, // Default to 1 (Good credit) as an example
+    },
   });
 
   const onSubmit: SubmitHandler<FormData> = async (data) => {
+    setError(null);
+    setPrediction(null);
+
     try {
-      const response = await axios.post("https://your-backend-url/predict", data);
-      setPrediction(response.data.prediction);
-    } catch (error) {
-      console.error("Prediction error:", error);
+      const response = await axios.post('https://your-backend-url/predict', data, {
+        headers: { 'Content-Type': 'application/json' },
+      });
+      setPrediction(response.data.prediction.toString()); // Ensure prediction is a string
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch prediction';
+      setError(errorMessage);
+      console.error('Prediction error:', err);
     }
   };
+
+  // Define the form fields with proper typing
+  const formFields = [
+    { label: 'Gender', name: 'Gender', type: 'select', options: ['Male', 'Female'] },
+    { label: 'Married', name: 'Married', type: 'select', options: ['Yes', 'No'] },
+    { label: 'Dependents', name: 'Dependents', type: 'number' },
+    { label: 'Education', name: 'Education', type: 'select', options: ['Graduate', 'Not Graduate'] },
+    { label: 'Self Employed', name: 'Self_Employed', type: 'select', options: ['Yes', 'No'] },
+    { label: 'Applicant Income', name: 'ApplicantIncome', type: 'number' },
+    { label: 'Coapplicant Income', name: 'CoapplicantIncome', type: 'number' },
+    { label: 'Loan Amount', name: 'LoanAmount', type: 'number' },
+    { label: 'Loan Term (months)', name: 'Loan_Amount_Term', type: 'number' },
+    { label: 'Credit History (1 = Good, 0 = Bad)', name: 'Credit_History', type: 'number' },
+    { label: 'Property Area', name: 'Property_Area', type: 'select', options: ['Urban', 'Rural', 'Semiurban'] },
+  ] as const;
 
   return (
     <div className="min-h-screen bg-gray-50 p-6 text-gray-900">
       <h1 className="text-3xl font-bold mb-4">Loan Default Predictor</h1>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 max-w-xl">
-        {/* Input fields */}
-        {[
-          { label: "Gender", name: "Gender", type: "select", options: ["Male", "Female"] },
-          { label: "Married", name: "Married", type: "select", options: ["Yes", "No"] },
-          { label: "Dependents", name: "Dependents", type: "number" },
-          { label: "Education", name: "Education", type: "select", options: ["Graduate", "Not Graduate"] },
-          { label: "Self Employed", name: "Self_Employed", type: "select", options: ["Yes", "No"] },
-          { label: "Applicant Income", name: "ApplicantIncome", type: "number" },
-          { label: "Coapplicant Income", name: "CoapplicantIncome", type: "number" },
-          { label: "Loan Amount", name: "LoanAmount", type: "number" },
-          { label: "Loan Term (months)", name: "Loan_Amount_Term", type: "number" },
-          { label: "Credit History (1 = Good, 0 = Bad)", name: "Credit_History", type: "number" },
-          { label: "Property Area", name: "Property_Area", type: "select", options: ["Urban", "Rural", "Semiurban"] },
-        ].map((field) => (
+        {formFields.map((field) => (
           <div key={field.name}>
             <label className="block font-semibold">
               {field.label}
-              {field.type === "select" ? (
-                <select {...register(field.name as keyof FormData)} className="block w-full mt-1 p-2 border rounded">
-                  <option value="">Select...</option>
-                  {field.options?.map((opt) => (
+              {field.type === 'select' ? (
+                <select
+                  {...register(field.name as keyof FormData)}
+                  className="block w-full mt-1 p-2 border rounded"
+                  defaultValue=""
+                >
+                  <option value="" disabled>
+                    Select...
+                  </option>
+                  {field.options.map((opt) => (
                     <option key={opt} value={opt}>
                       {opt}
                     </option>
@@ -72,25 +94,32 @@ export default function App() {
                 </select>
               ) : (
                 <input
-                  type="number"
+                  type={field.type}
                   {...register(field.name as keyof FormData)}
                   className="block w-full mt-1 p-2 border rounded"
+                  step={field.name === 'Credit_History' ? '1' : undefined} // Specific step for Credit_History
                 />
               )}
             </label>
             {errors[field.name as keyof FormData] && (
-              <p className="text-red-600 text-sm">
-                {field.label} is required or must be valid.
-              </p>
+              <p className="text-red-600 text-sm">{errors[field.name as keyof FormData]?.message}</p>
             )}
           </div>
         ))}
 
-        <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+        <button
+          type="submit"
+          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+        >
           Predict
         </button>
       </form>
 
+      {error && (
+        <div className="mt-6 p-4 bg-red-100 border border-red-400 rounded text-red-800">
+          <strong>Error:</strong> {error}
+        </div>
+      )}
       {prediction && (
         <div className="mt-6 p-4 bg-green-100 border border-green-400 rounded text-green-800">
           <strong>Prediction:</strong> {prediction}

@@ -34,7 +34,11 @@ export default function App() {
     resolver: zodResolver(schema),
     defaultValues: {
       Dependents: 0,
-      Credit_History: 1, // Default to 1 (Good credit) as an example
+      Credit_History: 1, // Default to good credit
+      ApplicantIncome: 0,
+      CoapplicantIncome: 0,
+      LoanAmount: 0,
+      Loan_Amount_Term: 0,
     },
   });
 
@@ -54,20 +58,20 @@ export default function App() {
     }
   };
 
-  // Define the form fields with proper typing
+  // Define form fields with explicit typing
   const formFields = [
-    { label: 'Gender', name: 'Gender', type: 'select', options: ['Male', 'Female'] },
-    { label: 'Married', name: 'Married', type: 'select', options: ['Yes', 'No'] },
-    { label: 'Dependents', name: 'Dependents', type: 'number' },
-    { label: 'Education', name: 'Education', type: 'select', options: ['Graduate', 'Not Graduate'] },
-    { label: 'Self Employed', name: 'Self_Employed', type: 'select', options: ['Yes', 'No'] },
-    { label: 'Applicant Income', name: 'ApplicantIncome', type: 'number' },
-    { label: 'Coapplicant Income', name: 'CoapplicantIncome', type: 'number' },
-    { label: 'Loan Amount', name: 'LoanAmount', type: 'number' },
-    { label: 'Loan Term (months)', name: 'Loan_Amount_Term', type: 'number' },
-    { label: 'Credit History (1 = Good, 0 = Bad)', name: 'Credit_History', type: 'number' },
-    { label: 'Property Area', name: 'Property_Area', type: 'select', options: ['Urban', 'Rural', 'Semiurban'] },
-  ] as const;
+    { label: 'Gender', name: 'Gender' as const, type: 'select', options: ['Male', 'Female'] },
+    { label: 'Married', name: 'Married' as const, type: 'select', options: ['Yes', 'No'] },
+    { label: 'Dependents', name: 'Dependents' as const, type: 'number' },
+    { label: 'Education', name: 'Education' as const, type: 'select', options: ['Graduate', 'Not Graduate'] },
+    { label: 'Self Employed', name: 'Self_Employed' as const, type: 'select', options: ['Yes', 'No'] },
+    { label: 'Applicant Income', name: 'ApplicantIncome' as const, type: 'number' },
+    { label: 'Coapplicant Income', name: 'CoapplicantIncome' as const, type: 'number' },
+    { label: 'Loan Amount', name: 'LoanAmount' as const, type: 'number' },
+    { label: 'Loan Term (months)', name: 'Loan_Amount_Term' as const, type: 'number' },
+    { label: 'Credit History (1 = Good, 0 = Bad)', name: 'Credit_History' as const, type: 'number' },
+    { label: 'Property Area', name: 'Property_Area' as const, type: 'select', options: ['Urban', 'Rural', 'Semiurban'] },
+  ];
 
   return (
     <div className="min-h-screen bg-gray-50 p-6 text-gray-900">
@@ -79,7 +83,7 @@ export default function App() {
               {field.label}
               {field.type === 'select' ? (
                 <select
-                  {...register(field.name as keyof FormData)}
+                  {...register(field.name)}
                   className="block w-full mt-1 p-2 border rounded"
                   defaultValue=""
                 >
@@ -95,14 +99,14 @@ export default function App() {
               ) : (
                 <input
                   type={field.type}
-                  {...register(field.name as keyof FormData)}
+                  {...register(field.name)}
                   className="block w-full mt-1 p-2 border rounded"
                   step={field.name === 'Credit_History' ? '1' : undefined} // Specific step for Credit_History
                 />
               )}
             </label>
-            {errors[field.name as keyof FormData] && (
-              <p className="text-red-600 text-sm">{errors[field.name as keyof FormData]?.message}</p>
+            {errors[field.name] && (
+              <p className="text-red-600 text-sm">{errors[field.name]?.message}</p>
             )}
           </div>
         ))}

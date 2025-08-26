@@ -39,6 +39,11 @@ export default function App() {
       LoanAmount: 0,
       Loan_Amount_Term: 0,
       Credit_History: 1, // Default to good credit
+      Gender: 'Male', // Default for enum fields
+      Married: 'No',
+      Education: 'Graduate',
+      Self_Employed: 'No',
+      Property_Area: 'Urban',
     },
   });
 
@@ -58,30 +63,34 @@ export default function App() {
     }
   };
 
-  // Define form fields with explicit typing and non-optional options
-  const formFields = [
-    { label: 'Gender', name: 'Gender' as const, type: 'select', options: ['Male', 'Female'] },
-    { label: 'Married', name: 'Married' as const, type: 'select', options: ['Yes', 'No'] },
-    { label: 'Dependents', name: 'Dependents' as const, type: 'number' },
-    { label: 'Education', name: 'Education' as const, type: 'select', options: ['Graduate', 'Not Graduate'] },
-    { label: 'Self Employed', name: 'Self_Employed' as const, type: 'select', options: ['Yes', 'No'] },
-    { label: 'Applicant Income', name: 'ApplicantIncome' as const, type: 'number' },
-    { label: 'Coapplicant Income', name: 'CoapplicantIncome' as const, type: 'number' },
-    { label: 'Loan Amount', name: 'LoanAmount' as const, type: 'number' },
-    { label: 'Loan Term (months)', name: 'Loan_Amount_Term' as const, type: 'number' },
-    { label: 'Credit History (1 = Good, 0 = Bad)', name: 'Credit_History' as const, type: 'number' },
-    { label: 'Property Area', name: 'Property_Area' as const, type: 'select', options: ['Urban', 'Rural', 'Semiurban'] },
-  ] as const;
+  // Define form fields with explicit typing
+  type FormField = {
+    label: string;
+    name: keyof FormData;
+    type: 'select' | 'number';
+    options?: string[]; // Optional for non-select fields
+  };
 
-  // Type for form field to ensure options are always present
-  type FormField = typeof formFields[number];
+  const formFields: FormField[] = [
+    { label: 'Gender', name: 'Gender', type: 'select', options: ['Male', 'Female'] },
+    { label: 'Married', name: 'Married', type: 'select', options: ['Yes', 'No'] },
+    { label: 'Dependents', name: 'Dependents', type: 'number' },
+    { label: 'Education', name: 'Education', type: 'select', options: ['Graduate', 'Not Graduate'] },
+    { label: 'Self Employed', name: 'Self_Employed', type: 'select', options: ['Yes', 'No'] },
+    { label: 'Applicant Income', name: 'ApplicantIncome', type: 'number' },
+    { label: 'Coapplicant Income', name: 'CoapplicantIncome', type: 'number' },
+    { label: 'Loan Amount', name: 'LoanAmount', type: 'number' },
+    { label: 'Loan Term (months)', name: 'Loan_Amount_Term', type: 'number' },
+    { label: 'Credit History (1 = Good, 0 = Bad)', name: 'Credit_History', type: 'number' },
+    { label: 'Property Area', name: 'Property_Area', type: 'select', options: ['Urban', 'Rural', 'Semiurban'] },
+  ];
 
   return (
     <div className="min-h-screen bg-gray-50 p-6 text-gray-900">
       <h1 className="text-3xl font-bold mb-4">Loan Default Predictor</h1>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 max-w-xl">
-        {formFields.map((field: FormField) => (
-          <div key={field.name}>
+        {formFields.map((field) => (
+          <div key={field.name as string}>
             <label className="block font-semibold">
               {field.label}
               {field.type === 'select' ? (
@@ -93,7 +102,7 @@ export default function App() {
                   <option value="" disabled>
                     Select...
                   </option>
-                  {field.options.map((opt) => (
+                  {field.options!.map((opt) => (
                     <option key={opt} value={opt}>
                       {opt}
                     </option>

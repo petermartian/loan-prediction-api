@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 
+// Zod schema with correct types
 const schema = z.object({
   Gender: z.enum(["Male", "Female"]),
   Married: z.enum(["Yes", "No"]),
@@ -17,6 +18,7 @@ const schema = z.object({
   Property_Area: z.enum(["Rural", "Urban", "Semiurban"]),
 });
 
+// ✅ Correctly inferred after coercion
 type FormData = z.infer<typeof schema>;
 
 function App() {
@@ -34,16 +36,14 @@ function App() {
     try {
       const response = await fetch("http://localhost:8000/predict", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify(data),
       });
 
       const result = await response.json();
-      if (typeof result.prediction === "string") {
-        setPrediction(result.prediction);
-      } else {
-        setPrediction("Unexpected response format");
-      }
+      setPrediction(result.prediction);
     } catch (error) {
       console.error("Prediction error:", error);
       setPrediction("Error connecting to backend.");
@@ -54,90 +54,80 @@ function App() {
     <div className="min-h-screen bg-gray-100 p-6">
       <div className="max-w-3xl mx-auto bg-white shadow-md rounded-md p-6">
         <h1 className="text-2xl font-bold mb-4">Loan Default Predictor</h1>
+
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          {/* Gender */}
           <div>
             <label>Gender</label>
             <select {...register("Gender")} className="input">
               <option value="Male">Male</option>
               <option value="Female">Female</option>
             </select>
-            <p className="text-red-500">{errors.Gender?.message}</p>
+            {errors.Gender && <p className="text-red-500">{errors.Gender.message}</p>}
           </div>
 
-          {/* Married */}
           <div>
             <label>Married</label>
             <select {...register("Married")} className="input">
               <option value="Yes">Yes</option>
               <option value="No">No</option>
             </select>
-            <p className="text-red-500">{errors.Married?.message}</p>
+            {errors.Married && <p className="text-red-500">{errors.Married.message}</p>}
           </div>
 
-          {/* Dependents */}
           <div>
             <label>Dependents</label>
             <input type="number" {...register("Dependents")} className="input" />
-            <p className="text-red-500">{errors.Dependents?.message}</p>
+            {errors.Dependents && <p className="text-red-500">{errors.Dependents.message}</p>}
           </div>
 
-          {/* Education */}
           <div>
             <label>Education</label>
             <select {...register("Education")} className="input">
               <option value="Graduate">Graduate</option>
               <option value="Not Graduate">Not Graduate</option>
             </select>
-            <p className="text-red-500">{errors.Education?.message}</p>
+            {errors.Education && <p className="text-red-500">{errors.Education.message}</p>}
           </div>
 
-          {/* Self Employed */}
           <div>
             <label>Self Employed</label>
             <select {...register("Self_Employed")} className="input">
               <option value="Yes">Yes</option>
               <option value="No">No</option>
             </select>
-            <p className="text-red-500">{errors.Self_Employed?.message}</p>
+            {errors.Self_Employed && <p className="text-red-500">{errors.Self_Employed.message}</p>}
           </div>
 
-          {/* Applicant Income */}
           <div>
             <label>Applicant Income</label>
             <input type="number" {...register("ApplicantIncome")} className="input" />
-            <p className="text-red-500">{errors.ApplicantIncome?.message}</p>
+            {errors.ApplicantIncome && <p className="text-red-500">{errors.ApplicantIncome.message}</p>}
           </div>
 
-          {/* Coapplicant Income */}
           <div>
             <label>Coapplicant Income</label>
             <input type="number" {...register("CoapplicantIncome")} className="input" />
-            <p className="text-red-500">{errors.CoapplicantIncome?.message}</p>
+            {errors.CoapplicantIncome && <p className="text-red-500">{errors.CoapplicantIncome.message}</p>}
           </div>
 
-          {/* Loan Amount */}
           <div>
             <label>Loan Amount</label>
             <input type="number" {...register("LoanAmount")} className="input" />
-            <p className="text-red-500">{errors.LoanAmount?.message}</p>
+            {errors.LoanAmount && <p className="text-red-500">{errors.LoanAmount.message}</p>}
           </div>
 
-          {/* Loan Term */}
           <div>
             <label>Loan Term</label>
             <input type="number" {...register("Loan_Amount_Term")} className="input" />
-            <p className="text-red-500">{errors.Loan_Amount_Term?.message}</p>
+            {errors.Loan_Amount_Term && <p className="text-red-500">{errors.Loan_Amount_Term.message}</p>}
           </div>
 
-          {/* Credit History */}
           <div>
             <label>Credit History</label>
             <input type="number" {...register("Credit_History")} className="input" />
-            <p className="text-red-500">{errors.Credit_History?.message}</p>
+            {errors.Credit_History && <p className="text-red-500">{errors.Credit_History.message}</p>}
           </div>
 
-          {/* Property Area */}
           <div>
             <label>Property Area</label>
             <select {...register("Property_Area")} className="input">
@@ -145,16 +135,14 @@ function App() {
               <option value="Semiurban">Semiurban</option>
               <option value="Rural">Rural</option>
             </select>
-            <p className="text-red-500">{errors.Property_Area?.message}</p>
+            {errors.Property_Area && <p className="text-red-500">{errors.Property_Area.message}</p>}
           </div>
 
-          {/* Submit Button */}
           <button type="submit" className="bg-blue-600 text-white py-2 px-4 rounded">
             Predict
           </button>
         </form>
 
-        {/* Prediction Display */}
         {prediction && (
           <div className="mt-6 p-4 bg-green-100 text-green-800 rounded shadow">
             Prediction Result: <strong>{prediction}</strong>

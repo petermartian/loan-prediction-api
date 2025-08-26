@@ -34,11 +34,11 @@ export default function App() {
     resolver: zodResolver(schema),
     defaultValues: {
       Dependents: 0,
-      Credit_History: 1, // Default to good credit
       ApplicantIncome: 0,
       CoapplicantIncome: 0,
       LoanAmount: 0,
       Loan_Amount_Term: 0,
+      Credit_History: 1, // Default to good credit
     },
   });
 
@@ -58,7 +58,7 @@ export default function App() {
     }
   };
 
-  // Define form fields with explicit typing
+  // Define form fields with explicit typing and non-optional options
   const formFields = [
     { label: 'Gender', name: 'Gender' as const, type: 'select', options: ['Male', 'Female'] },
     { label: 'Married', name: 'Married' as const, type: 'select', options: ['Yes', 'No'] },
@@ -71,13 +71,16 @@ export default function App() {
     { label: 'Loan Term (months)', name: 'Loan_Amount_Term' as const, type: 'number' },
     { label: 'Credit History (1 = Good, 0 = Bad)', name: 'Credit_History' as const, type: 'number' },
     { label: 'Property Area', name: 'Property_Area' as const, type: 'select', options: ['Urban', 'Rural', 'Semiurban'] },
-  ];
+  ] as const;
+
+  // Type for form field to ensure options are always present
+  type FormField = typeof formFields[number];
 
   return (
     <div className="min-h-screen bg-gray-50 p-6 text-gray-900">
       <h1 className="text-3xl font-bold mb-4">Loan Default Predictor</h1>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 max-w-xl">
-        {formFields.map((field) => (
+        {formFields.map((field: FormField) => (
           <div key={field.name}>
             <label className="block font-semibold">
               {field.label}
@@ -101,7 +104,7 @@ export default function App() {
                   type={field.type}
                   {...register(field.name)}
                   className="block w-full mt-1 p-2 border rounded"
-                  step={field.name === 'Credit_History' ? '1' : undefined} // Specific step for Credit_History
+                  step={field.name === 'Credit_History' ? '1' : undefined}
                 />
               )}
             </label>
